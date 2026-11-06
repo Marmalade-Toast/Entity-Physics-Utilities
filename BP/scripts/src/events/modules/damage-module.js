@@ -1,7 +1,8 @@
 import { EntityComponentTypes, EntityDamageCause, system, world } from "@minecraft/server";
 
 import { innerJoinOnKeyEqual } from "../../../lib/inner-join";
-import { EventProcessorModule, setEventBeforeEventOfMultiple, setEventResultedInMultiple } from "../event-processor";
+import { EventProcessorModule } from "../event-processor";
+import { setEventBeforeEventOfMultiple, setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
 import { log } from "../../../lib/debug/logging";
 import { getElseSetDefault } from "../../../lib/get-else-set-default";
 
@@ -158,8 +159,7 @@ export class DamageModule extends EventProcessorModule {
         const remainingHealth = event.hurtEntity?.getComponent?.(EntityComponentTypes.Health)?.currentValue;
         if (remainingHealth === undefined) return;
         const isFatal = remainingHealth <= 0;
-        const snapshot = getElseSetDefault(event, "snapshot", {});
-        snapshot.isFatal = isFatal;
+        setSnapshotProperty(event, "isFatal", isFatal);
     }
 
     processTickEvents(events) {
