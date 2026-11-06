@@ -1,4 +1,5 @@
 import { log } from "../../lib/debug/logging";
+import { UNKNOWN } from "../../lib/flags/calculation";
 import { addIP, magnitude, mul } from "../vector3-utils/math";
 
 export class ExplosionSimulator {
@@ -9,7 +10,13 @@ export class ExplosionSimulator {
         const step = mul(entityVelocity, -1/speed);
         let attemptLocation = {...initialAttemptLocation};
         for (let offsetCount = 0; offsetCount <= ExplosionSimulator.maxEBEOCount(speed); offsetCount++) {
-            const block = dimension.getBlock(attemptLocation);
+            let block;
+            try {
+                block = dimension.getBlock(attemptLocation);
+            }
+            catch {
+                return {dimension: dimension, x: UNKNOWN, y: UNKNOWN, z: UNKNOWN};
+            }
             if (!block.isSolid) return {dimension: dimension, ...attemptLocation};
             addIP(attemptLocation, step);
         }
