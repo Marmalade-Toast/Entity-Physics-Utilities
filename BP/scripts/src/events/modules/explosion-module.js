@@ -1,4 +1,4 @@
-import { Direction, system, world } from "@minecraft/server";
+import { Direction, EntityComponentTypes, system, world } from "@minecraft/server";
 import { DebugBox, debugDrawer } from "@minecraft/debug-utilities";
 
 import { innerJoinOnKeyEqual } from "../../../lib/inner-join";
@@ -16,6 +16,11 @@ function isWindChargeLike(entity) {
         entity.typeId == "minecraft:wind_charge_projectile"
         || entity.typeId == "minecraft:breeze_wind_charge_projectile"
     );
+}
+
+
+function isProjectile(entity) {
+    return entity.hasComponent(EntityComponentTypes.Projectile);
 }
 
 
@@ -65,10 +70,13 @@ export class ExplosionModule extends EventProcessorModule {
             original: sourceLocation,
             afterOffset: ExplosionSimulator.simulateEBEO(dimension, sourceLocation, sourceVelocity)
         };
-        explosionLocationGuesses.AABBCentre = {
-            original: sourceAABB.center,
-            afterOffset: ExplosionSimulator.simulateEBEO(dimension, sourceAABB.center, sourceVelocity)
-        };
+
+        if (!isProjectile(source)) {
+            explosionLocationGuesses.AABBCentre = {
+                original: sourceAABB.center,
+                afterOffset: ExplosionSimulator.simulateEBEO(dimension, sourceAABB.center, sourceVelocity)
+            };
+        }
 
         // Wind charge explosion offsets
         if (isWindChargeLike(source)) {
