@@ -66,10 +66,20 @@ export class ExplosionModule extends EventProcessorModule {
         // used to determine if EBEO has occurred.
         
         const explosionLocationGuesses = {};
-        explosionLocationGuesses.feet = {
-            original: sourceLocation,
-            afterOffset: ExplosionSimulator.simulateEBEO(dimension, sourceLocation, sourceVelocity)
-        };
+
+        if (source.typeId === "minecraft:tnt") {
+            explosionLocationGuesses.default = {
+                original: add(sourceLocation, {x: 0, y: 0.06125, z: 0}),
+                afterOffset: ExplosionSimulator.simulateEBEO(dimension, add(sourceLocation, {x: 0, y: 0.06125, z: 0}), sourceVelocity)
+            };
+        }
+
+        else {
+            explosionLocationGuesses.default = {
+                original: sourceLocation,
+                afterOffset: ExplosionSimulator.simulateEBEO(dimension, sourceLocation, sourceVelocity)
+            };
+        }
 
         if (!isProjectile(source)) {
             explosionLocationGuesses.AABBCentre = {
