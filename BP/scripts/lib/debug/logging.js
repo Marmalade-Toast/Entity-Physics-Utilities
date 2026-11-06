@@ -9,14 +9,14 @@ export function pprint(obj, repr = false, memo = null) {
             return "§d( ... )§r";
         }
         memo.add(obj);
-        return "[ " + obj.map((value) => pprint(value, repr = true, memo)).join(", ") + " ]";
+        return "§7[§r " + obj.map((value) => pprint(value, repr = true, memo)).join(", ") + " §7]§r";
     }
     if (obj === null) {
         return "§dnull§f";
     }
     switch (typeof obj) {
         case "string":
-            return repr ? "§a\"" + obj + "\"§f" : "§a" + obj + "§f";
+            return repr ? "§a\"" + obj + "\"§f" : obj + "§f";
         
         case "number":
             return "§w" + obj + "§f";
@@ -42,11 +42,11 @@ export function pprint(obj, repr = false, memo = null) {
     }
     memo.add(obj);
 
-    return "{ "
+    return "§7{§r "
         + Object.keys(obj)
           .map((key) => pprint(key, repr = false, memo) + ": " + pprint(obj[key], repr = true, memo))
           .join(", ")
-        + " }";
+        + " §7}§r";
 }
 
 

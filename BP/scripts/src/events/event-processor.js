@@ -13,6 +13,17 @@ export function setEventResultedInMultiple(initiator, results) {
     getElseSetDefault(initiator, "resultedIn", []).push(...results);
 }
 
+export function setEventBeforeEventOf(beforeEvent, afterEvent) {
+    afterEvent.beforeEvent = beforeEvent;
+    getElseSetDefault(beforeEvent, "beforeEventOf", []).push(afterEvent);
+}
+
+
+export function setEventBeforeEventOfMultiple(beforeEvent, afterEvents) {
+    afterEvents.forEach((event) => {event.beforeEvent = beforeEvent;});
+    getElseSetDefault(beforeEvent, "beforeEventOf", []).push(...afterEvents);
+}
+
 
 class EventPool {
     #tick
