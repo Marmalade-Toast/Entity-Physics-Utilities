@@ -6,9 +6,6 @@ import { log } from "../../../lib/debug/logging";
 import { getElseSetDefault } from "../../../lib/get-else-set-default";
 
 
-
-
-
 export class DamageModule extends EventProcessorModule {
     #processEntityHurtBeforeEventCallback
 
