@@ -6,118 +6,7 @@ import { log } from "../../../lib/debug/logging";
 import { getElseSetDefault } from "../../../lib/get-else-set-default";
 
 
-function hurtJoin_HurtEventKey(event) {
-    const hurtEntity = event.hurtEntity;
-    const damageSource = event.damageSource;
-    const cause = damageSource.cause;
-    const damagingEntity = damageSource.damagingEntity;
-    const damagingProjectile = damageSource.damagingProjectile;
 
-    const key = `H:${hurtEntity.id}C:${cause}E:${damagingEntity?.id}P:${damagingProjectile?.id}`
-    return key;
-}
-
-function hurtDieJoin_HurtEventKey(event) {
-    // Damage must be fatal in order to kill the entity
-    if (!event.beforeEvent?.snapshot?.isFatal) return null;
-
-    const hurtEntity = event.hurtEntity;
-    const damageSource = event.damageSource;
-    const cause = damageSource.cause;
-    const damagingEntity = damageSource.damagingEntity;
-    const damagingProjectile = damageSource.damagingProjectile;
-
-    const key = `D:${hurtEntity.id}C:${cause}E:${damagingEntity?.id}P:${damagingProjectile?.id}`
-    return key;
-}
-
-function hurtDieJoin_DieEventKey(event) {
-    const deadEntity = event.deadEntity;
-    const damageSource = event.damageSource;
-    const cause = damageSource.cause;
-    const damagingEntity = damageSource.damagingEntity;
-    const damagingProjectile = damageSource.damagingProjectile;
-
-    const key = `D:${deadEntity.id}C:${cause}E:${damagingEntity?.id}P:${damagingProjectile?.id}`
-    return key;
-}
-
-function hitHurtJoin_HitKey(event) {
-    const damagingEntity = event.damagingEntity;
-    const hitEntity = event.hitEntity;
-
-    const key = `A:${damagingEntity.id}D:${hitEntity.id}`;
-    return key;
-}
-
-function hitHurtJoin_HurtKey(event) {
-    const hitEntity = event.hurtEntity;
-    const damageSource = event.damageSource;
-    const cause = damageSource.cause;
-    const damagingEntity = damageSource.damagingEntity;
-    if (damagingEntity === undefined || cause !== EntityDamageCause.entityAttack) return null;
-
-    const key = `A:${damagingEntity.id}D:${hitEntity.id}`;
-    return key;
-}
-
-function explosionHurtJoin_ExplosionKey(event) {
-    const sourceEntity = event.source;
-    if (sourceEntity === undefined) return null;
-
-    const key = `E:${sourceEntity.id}T:E`;
-    return key;
-}
-
-function explosionHurtJoin_HurtKey(event) {
-    const damageSource = event.damageSource;
-    const cause = damageSource.cause;
-    const damagingEntity = damageSource?.damagingEntity;
-    if (damagingEntity === undefined || cause !== EntityDamageCause.entityExplosion) return null;
-
-    const key = `E:${damagingEntity.id}T:E`;
-    return key;
-}
-
-function projectileHitHurtJoin_ProjectileHitKey(event) {
-    const hitEntity = event.getEntityHit()?.entity;
-    const projectile = event.projectile;
-    
-    const key = `H:${hitEntity.id}P:${projectile.id}`;
-    return key;
-}
-
-function projectileHitHurtJoin_HurtKey(event) {
-    const hitEntity = event.hurtEntity;
-    const damageSource = event.damageSource;
-    const cause = damageSource.cause;
-    const projectile = damageSource?.damagingProjectile;
-    if (projectile === undefined || cause !== EntityDamageCause.projectile) return null;
-
-    const key = `H:${hitEntity.id}P:${projectile.id}`;
-    return key;
-}
-
-function effectAddHurtJoin_EffectAddKey(event) {
-    const effectType = event.effect.typeId;
-    // Only instant damage can apply damage instantly.
-    // Poison and other lasting effects do not apply the first damage instantly.
-    if (effectType !== "minecraft:instant_damage") return null;
-    const entity = event.entity;
-
-    const key = `E:${entity.id}`;
-    return key;
-}
-
-
-function effectAddHurtJoin_HurtKey(event) {
-    const hurtEntity = event.hurtEntity;
-    const cause = event.damageSource.cause;
-    if (cause !== EntityDamageCause.magic) return null;
-
-    const key = `E:${hurtEntity.id}`;
-    return key;
-}
 
 
 export class DamageModule extends EventProcessorModule {
@@ -125,7 +14,7 @@ export class DamageModule extends EventProcessorModule {
 
     constructor() {
         super();
-        this.#processEntityHurtBeforeEventCallback = (event) => this.#processEntityHurtBeforeEvent(event);
+        this.#processEntityHurtBeforeEventCallback = (event) => DamageModule.#processEntityHurtBeforeEvent(event);
     }
 
     declareRequirements(eventProcessor) {
@@ -154,7 +43,119 @@ export class DamageModule extends EventProcessorModule {
         world.beforeEvents.entityHurt.unsubscribe(this.#processEntityHurtBeforeEventCallback);
     }
 
-    #processEntityHurtBeforeEvent(event) {
+    static #hurtJoin_HurtEventKey(event) {
+        const hurtEntity = event.hurtEntity;
+        const damageSource = event.damageSource;
+        const cause = damageSource.cause;
+        const damagingEntity = damageSource.damagingEntity;
+        const damagingProjectile = damageSource.damagingProjectile;
+    
+        const key = `H:${hurtEntity.id}C:${cause}E:${damagingEntity?.id}P:${damagingProjectile?.id}`
+        return key;
+    }
+    
+    static #hurtDieJoin_HurtEventKey(event) {
+        // Damage must be fatal in order to kill the entity
+        if (!event.beforeEvent?.snapshot?.isFatal) return null;
+    
+        const hurtEntity = event.hurtEntity;
+        const damageSource = event.damageSource;
+        const cause = damageSource.cause;
+        const damagingEntity = damageSource.damagingEntity;
+        const damagingProjectile = damageSource.damagingProjectile;
+    
+        const key = `D:${hurtEntity.id}C:${cause}E:${damagingEntity?.id}P:${damagingProjectile?.id}`
+        return key;
+    }
+    
+    static #hurtDieJoin_DieEventKey(event) {
+        const deadEntity = event.deadEntity;
+        const damageSource = event.damageSource;
+        const cause = damageSource.cause;
+        const damagingEntity = damageSource.damagingEntity;
+        const damagingProjectile = damageSource.damagingProjectile;
+    
+        const key = `D:${deadEntity.id}C:${cause}E:${damagingEntity?.id}P:${damagingProjectile?.id}`
+        return key;
+    }
+    
+    static #hitHurtJoin_HitKey(event) {
+        const damagingEntity = event.damagingEntity;
+        const hitEntity = event.hitEntity;
+    
+        const key = `A:${damagingEntity.id}D:${hitEntity.id}`;
+        return key;
+    }
+    
+    static #hitHurtJoin_HurtKey(event) {
+        const hitEntity = event.hurtEntity;
+        const damageSource = event.damageSource;
+        const cause = damageSource.cause;
+        const damagingEntity = damageSource.damagingEntity;
+        if (damagingEntity === undefined || cause !== EntityDamageCause.entityAttack) return null;
+    
+        const key = `A:${damagingEntity.id}D:${hitEntity.id}`;
+        return key;
+    }
+    
+    static #explosionHurtJoin_ExplosionKey(event) {
+        const sourceEntity = event.source;
+        if (sourceEntity === undefined) return null;
+    
+        const key = `E:${sourceEntity.id}T:E`;
+        return key;
+    }
+    
+    static #explosionHurtJoin_HurtKey(event) {
+        const damageSource = event.damageSource;
+        const cause = damageSource.cause;
+        const damagingEntity = damageSource?.damagingEntity;
+        if (damagingEntity === undefined || cause !== EntityDamageCause.entityExplosion) return null;
+    
+        const key = `E:${damagingEntity.id}T:E`;
+        return key;
+    }
+    
+    static #projectileHitHurtJoin_ProjectileHitKey(event) {
+        const hitEntity = event.getEntityHit()?.entity;
+        const projectile = event.projectile;
+        
+        const key = `H:${hitEntity.id}P:${projectile.id}`;
+        return key;
+    }
+    
+    static #projectileHitHurtJoin_HurtKey(event) {
+        const hitEntity = event.hurtEntity;
+        const damageSource = event.damageSource;
+        const cause = damageSource.cause;
+        const projectile = damageSource?.damagingProjectile;
+        if (projectile === undefined || cause !== EntityDamageCause.projectile) return null;
+    
+        const key = `H:${hitEntity.id}P:${projectile.id}`;
+        return key;
+    }
+    
+    static #effectAddHurtJoin_EffectAddKey(event) {
+        const effectType = event.effect.typeId;
+        // Only instant damage can apply damage instantly.
+        // Poison and other lasting effects do not apply the first damage instantly.
+        if (effectType !== "minecraft:instant_damage") return null;
+        const entity = event.entity;
+    
+        const key = `E:${entity.id}`;
+        return key;
+    }
+    
+    static #effectAddHurtJoin_HurtKey(event) {
+        const hurtEntity = event.hurtEntity;
+        const cause = event.damageSource.cause;
+        if (cause !== EntityDamageCause.magic) return null;
+    
+        const key = `E:${hurtEntity.id}`;
+        return key;
+    }
+
+    static #processEntityHurtBeforeEvent(event) {
         const hurtEntity = event.hurtEntity;
         if (!hurtEntity.isValid) return;
         const remainingHealth = event.hurtEntity?.getComponent?.(EntityComponentTypes.Health)?.currentValue;
@@ -171,8 +172,8 @@ export class DamageModule extends EventProcessorModule {
         const entityHurtPairs = innerJoinOnKeyEqual( // TODO: one-to-one version
             entityHurtBeforeEvents,
             entityHurtAfterEvents,
-            hurtJoin_HurtEventKey,
-            hurtJoin_HurtEventKey
+            DamageModule.#hurtJoin_HurtEventKey,
+            DamageModule.#hurtJoin_HurtEventKey
         );
         for (const pair of entityHurtPairs) {
             const beforeEvent = pair[0];
@@ -185,8 +186,8 @@ export class DamageModule extends EventProcessorModule {
         const entityHurtDiePairs = innerJoinOnKeyEqual(
             entityHurtAfterEvents,
             entityDieAfterEvents,
-            hurtDieJoin_HurtEventKey,
-            hurtDieJoin_DieEventKey
+            DamageModule.#hurtDieJoin_HurtEventKey,
+            DamageModule.#hurtDieJoin_DieEventKey
         );
         for (const pair of entityHurtDiePairs) {
             const hurtEvent = pair[0];
@@ -200,8 +201,8 @@ export class DamageModule extends EventProcessorModule {
         const entityHitHurtPairs = innerJoinOnKeyEqual(
             entityHitEntityAfterEvents,
             entityHurtAfterEvents,
-            hitHurtJoin_HitKey,
-            hitHurtJoin_HurtKey
+            DamageModule.#hitHurtJoin_HitKey,
+            DamageModule.#hitHurtJoin_HurtKey
         );
         for (const pair of entityHitHurtPairs) {
             const hitEvent = pair[0];
@@ -213,8 +214,8 @@ export class DamageModule extends EventProcessorModule {
         const entityExplodeHurtPairs = innerJoinOnKeyEqual(
             explosionAfterEvents,
             entityHurtAfterEvents,
-            explosionHurtJoin_ExplosionKey,
-            explosionHurtJoin_HurtKey
+            DamageModule.#explosionHurtJoin_ExplosionKey,
+            DamageModule.#explosionHurtJoin_HurtKey
         );
         for (const pair of entityExplodeHurtPairs) {
             const explosionEvent = pair[0];
@@ -226,8 +227,8 @@ export class DamageModule extends EventProcessorModule {
         const projectileHitHurtPairs = innerJoinOnKeyEqual(
             projectileHitEntityAfterEvents,
             entityHurtAfterEvents,
-            projectileHitHurtJoin_ProjectileHitKey,
-            projectileHitHurtJoin_HurtKey
+            DamageModule.#projectileHitHurtJoin_ProjectileHitKey,
+            DamageModule.#projectileHitHurtJoin_HurtKey
         );
         for (const pair of projectileHitHurtPairs) {
             const projectileHitEntityEvent = pair[0];
@@ -241,8 +242,8 @@ export class DamageModule extends EventProcessorModule {
         const effectAddHurtPairs = innerJoinOnKeyEqual(
             effectAddAfterEvents,
             entityHurtAfterEvents,
-            effectAddHurtJoin_EffectAddKey,
-            effectAddHurtJoin_HurtKey
+            DamageModule.#effectAddHurtJoin_EffectAddKey,
+            DamageModule.#effectAddHurtJoin_HurtKey
         );
         for (const pair of effectAddHurtPairs) {
             const effectAddEvent = pair[0];
