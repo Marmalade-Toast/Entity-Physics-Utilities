@@ -54,7 +54,7 @@ export class DamageModule extends EventProcessorModule {
     
     static #hurtDieJoin_HurtEventKey(event) {
         // Damage must be fatal in order to kill the entity
-        if (!event.beforeEvent?.snapshot?.isFatal) return null;
+        if (!(event.isFatal ?? false)) return null;
     
         const hurtEntity = event.hurtEntity;
         const damageSource = event.damageSource;
@@ -67,6 +67,9 @@ export class DamageModule extends EventProcessorModule {
     }
     
     static #hurtDieJoin_DieEventKey(event) {
+        // Damage must be fatal in order to kill the entity
+        if (!(event.isFatal ?? false)) return null;
+
         const deadEntity = event.deadEntity;
         const damageSource = event.damageSource;
         const cause = damageSource.cause;
@@ -176,6 +179,9 @@ export class DamageModule extends EventProcessorModule {
             const beforeEvent = pair[0];
             const afterEvent = pair[1];
             setEventBeforeEventOf(beforeEvent, afterEvent);
+
+            // Finalise additional properties
+            afterEvent.isFatal = beforeEvent.snapshot?.isFatal ?? false;
         }
 
         // ENTITY DEATH
