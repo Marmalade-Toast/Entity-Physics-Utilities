@@ -5,7 +5,7 @@ import { joinOnKeyEqualOneToOne, joinOnKeyEqualOneToN } from "../../../lib/inner
 import { log } from "../../../lib/debug/logging";
 import { getElseSetDefault } from "../../../lib/get-else-set-default";
 import { EventProcessorModule } from "../event-processor";
-import { setEventBeforeEventOf, setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
+import { setEventBeforeEventOf, setEventResultedIn, setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
 import { ExplosionSimulator } from "../../simulators/explosion";
 import { add, mul } from "../../vector3-utils/math";
 import { UnitDirectionVector } from "../../vector3-utils/directions";
@@ -36,6 +36,10 @@ export class ExplosionModule extends EventProcessorModule {
         eventProcessor.requestRequireEventSignal(this, world.beforeEvents.explosion);
 
         eventProcessor.requestRequireEventSignal(this, world.afterEvents.explosion);
+        eventProcessor.requestRequireEventSignal(this, world.afterEvents.entityDie);
+        eventProcessor.requestRequireEventSignal(this, world.afterEvents.projectileHitBlock);
+        eventProcessor.requestRequireEventSignal(this, world.afterEvents.projectileHitEntity);
+
 
         world.beforeEvents.explosion.subscribe(this.#processExplosionBeforeEventCallback);
     }
@@ -44,6 +48,9 @@ export class ExplosionModule extends EventProcessorModule {
         eventProcessor.requestReleaseEventSignal(this, world.beforeEvents.explosion);
 
         eventProcessor.requestReleaseEventSignal(this, world.afterEvents.explosion);
+        eventProcessor.requestReleaseEventSignal(this, world.afterEvents.entityDie);
+        eventProcessor.requestReleaseEventSignal(this, world.afterEvents.projectileHitBlock);
+        eventProcessor.requestReleaseEventSignal(this, world.afterEvents.projectileHitEntity);
 
         world.beforeEvents.explosion.unsubscribe(this.#processExplosionBeforeEventCallback);
     }
@@ -132,6 +139,51 @@ export class ExplosionModule extends EventProcessorModule {
         return key;
     }
 
+    static #explosionDieJoin_ExplosionEventKey(event) {
+        const sourceEntity = event.source;
+        if (sourceEntity === undefined) return null;
+    
+        const key = `E:${sourceEntity.id}`;
+        return key;
+    }
+
+    static #explosionDieJoin_DieEventKey(event) {
+        const deadEntity = event.deadEntity;
+
+        const key = `E:${deadEntity.id}`;
+        return key;
+    }
+
+    static #projectileHitBlockExplosionJoin_ProjectileHitBlockEventKey(event) {
+        const projectile = event.projectile;
+
+        const key = `E:${projectile.id}`;
+        return key;
+    }
+
+    static #projectileHitBlockExplosionJoin_ExplosionEventKey(event) {
+        const sourceEntity = event.source;
+        if (sourceEntity === undefined) return null;
+    
+        const key = `E:${sourceEntity.id}`;
+        return key;
+    }
+
+    static #projectileHitEntityExplosionJoin_ProjectileHitEntityEventKey(event) {
+        const projectile = event.projectile;
+
+        const key = `E:${projectile.id}`;
+        return key;
+    }
+
+    static #projectileHitEntityExplosionJoin_ExplosionEventKey(event) {
+        const sourceEntity = event.source;
+        if (sourceEntity === undefined) return null;
+    
+        const key = `E:${sourceEntity.id}`;
+        return key;
+    }
+
     processTickEvents(events) {
         // Associate before/after events to gain additional information
         const explosionBeforeEvents = events.getEventsBySignal(world.beforeEvents.explosion);
@@ -147,6 +199,51 @@ export class ExplosionModule extends EventProcessorModule {
             const afterEvent = pair[1];
             setEventBeforeEventOf(beforeEvent, afterEvent);
             log("Event", afterEvent, "is afterEvent of", beforeEvent);
+        }
+        // Death
+        // TODO: detect self-destroying entities exploding by injecting entityDie events.
+        // Self-destroying entities no longer trigger entityDie when they explode, so
+        // detecting a wind charged creeper exploding directly does not work anymore.
+        const entityDieAfterEvents = events.getEventsBySignal(world.afterEvents.entityDie);
+        const dieExplosionPairs = joinOnKeyEqualOneToOne(
+            entityDieAfterEvents,
+            explosionAfterEvents,
+            ExplosionModule.#explosionDieJoin_DieEventKey,
+            ExplosionModule.#explosionDieJoin_ExplosionEventKey
+        );
+        for (const pair of dieExplosionPairs) {
+            const dieEvent = pair[0];
+            const explosionEvent = pair[1];
+            setEventResultedIn(dieEvent, explosionEvent);
+            log("Death", dieEvent, "caused explosion", explosionEvent);
+        }
+        // Projectile hit block
+        const projectileHitBlockAfterEvents = events.getEventsBySignal(world.afterEvents.projectileHitBlock);
+        const projectileHitBlockExplosionPairs = joinOnKeyEqualOneToOne(
+            projectileHitBlockAfterEvents,
+            explosionAfterEvents,
+            ExplosionModule.#projectileHitBlockExplosionJoin_ProjectileHitBlockEventKey,
+            ExplosionModule.#projectileHitBlockExplosionJoin_ExplosionEventKey
+        );
+        for (const pair of projectileHitBlockExplosionPairs) {
+            const projectileHitBlockEvent = pair[0];
+            const explosionEvent = pair[1];
+            setEventResultedIn(projectileHitBlockEvent, explosionEvent);
+            log("Projectile hit block event", projectileHitBlockEvent, "caused explosion", explosionEvent);
+        }
+        // Projectile hit entity
+        const projectileHitEntityAfterEvents = events.getEventsBySignal(world.afterEvents.projectileHitEntity);
+        const projectileHitEntityExplosionPairs = joinOnKeyEqualOneToOne(
+            projectileHitEntityAfterEvents,
+            explosionAfterEvents,
+            ExplosionModule.#projectileHitEntityExplosionJoin_ProjectileHitEntityEventKey,
+            ExplosionModule.#projectileHitEntityExplosionJoin_ExplosionEventKey
+        );
+        for (const pair of projectileHitEntityExplosionPairs) {
+            const projectileHitEntityEvent = pair[0];
+            const explosionEvent = pair[1];
+            setEventResultedIn(projectileHitEntityEvent, explosionEvent);
+            log("Projectile hit entity event", projectileHitEntityEvent, "caused explosion", explosionEvent);
         }
     }
 }
