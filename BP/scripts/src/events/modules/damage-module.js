@@ -1,8 +1,8 @@
 import { EntityComponentTypes, EntityDamageCause, system, world } from "@minecraft/server";
 
-import { innerJoinOnKeyEqual } from "../../../lib/inner-join";
+import { joinOnKeyEqualOneToN, joinOnKeyEqualOneToOne } from "../../../lib/inner-join";
 import { EventProcessorModule } from "../event-processor";
-import { setEventBeforeEventOfMultiple, setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
+import { setEventBeforeEventOf, setEventResultedIn, setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
 import { log } from "../../../lib/debug/logging";
 import { getElseSetDefault } from "../../../lib/get-else-set-default";
 
@@ -166,7 +166,7 @@ export class DamageModule extends EventProcessorModule {
         // Associate before/after events to gain additional information
         const entityHurtBeforeEvents = events.getEventsBySignal(world.beforeEvents.entityHurt);
         const entityHurtAfterEvents = events.getEventsBySignal(world.afterEvents.entityHurt);
-        const entityHurtPairs = innerJoinOnKeyEqual( // TODO: one-to-one version
+        const entityHurtPairs = joinOnKeyEqualOneToOne(
             entityHurtBeforeEvents,
             entityHurtAfterEvents,
             DamageModule.#hurtJoin_HurtEventKey,
@@ -174,13 +174,13 @@ export class DamageModule extends EventProcessorModule {
         );
         for (const pair of entityHurtPairs) {
             const beforeEvent = pair[0];
-            const afterEvents = pair[1];
-            setEventBeforeEventOfMultiple(beforeEvent, afterEvents);
+            const afterEvent = pair[1];
+            setEventBeforeEventOf(beforeEvent, afterEvent);
         }
 
         // ENTITY DEATH
         const entityDieAfterEvents = events.getEventsBySignal(world.afterEvents.entityDie);
-        const entityHurtDiePairs = innerJoinOnKeyEqual(
+        const entityHurtDiePairs = joinOnKeyEqualOneToOne(
             entityHurtAfterEvents,
             entityDieAfterEvents,
             DamageModule.#hurtDieJoin_HurtEventKey,
@@ -188,14 +188,14 @@ export class DamageModule extends EventProcessorModule {
         );
         for (const pair of entityHurtDiePairs) {
             const hurtEvent = pair[0];
-            const dieEvents = pair[1];
-            setEventResultedInMultiple(hurtEvent, dieEvents);
+            const dieEvent = pair[1];
+            setEventResultedIn(hurtEvent, dieEvent);
         }
 
         // DAMAGE CAUSES
         // Entity melee attacks
         const entityHitEntityAfterEvents = events.getEventsBySignal(world.afterEvents.entityHitEntity);
-        const entityHitHurtPairs = innerJoinOnKeyEqual(
+        const entityHitHurtPairs = joinOnKeyEqualOneToOne(
             entityHitEntityAfterEvents,
             entityHurtAfterEvents,
             DamageModule.#hitHurtJoin_HitKey,
@@ -203,12 +203,12 @@ export class DamageModule extends EventProcessorModule {
         );
         for (const pair of entityHitHurtPairs) {
             const hitEvent = pair[0];
-            const hurtEvents = pair[1];
-            setEventResultedInMultiple(hitEvent, hurtEvents);
+            const hurtEvent = pair[1];
+            setEventResultedIn(hitEvent, hurtEvent);
         }
         // Explosion
         const explosionAfterEvents = events.getEventsBySignal(world.afterEvents.explosion);
-        const entityExplodeHurtPairs = innerJoinOnKeyEqual(
+        const entityExplodeHurtPairs = joinOnKeyEqualOneToN(
             explosionAfterEvents,
             entityHurtAfterEvents,
             DamageModule.#explosionHurtJoin_ExplosionKey,
@@ -221,7 +221,7 @@ export class DamageModule extends EventProcessorModule {
         }
         // Projectile hit
         const projectileHitEntityAfterEvents = events.getEventsBySignal(world.afterEvents.projectileHitEntity);
-        const projectileHitHurtPairs = innerJoinOnKeyEqual(
+        const projectileHitHurtPairs = joinOnKeyEqualOneToOne(
             projectileHitEntityAfterEvents,
             entityHurtAfterEvents,
             DamageModule.#projectileHitHurtJoin_ProjectileHitKey,
@@ -229,14 +229,14 @@ export class DamageModule extends EventProcessorModule {
         );
         for (const pair of projectileHitHurtPairs) {
             const projectileHitEntityEvent = pair[0];
-            const hurtEvents = pair[1];
-            setEventResultedInMultiple(projectileHitEntityEvent, hurtEvents);
+            const hurtEvent = pair[1];
+            setEventResultedIn(projectileHitEntityEvent, hurtEvent);
         }
         // Instant damage effect
         // This event is undetectable by the Script API when applied during the
         // entity system update due to https://bugs.mojang.com/browse/MCPE/issues/MCPE-244182.
         const effectAddAfterEvents = events.getEventsBySignal(this, world.afterEvents.effectAdd);
-        const effectAddHurtPairs = innerJoinOnKeyEqual(
+        const effectAddHurtPairs = joinOnKeyEqualOneToOne(
             effectAddAfterEvents,
             entityHurtAfterEvents,
             DamageModule.#effectAddHurtJoin_EffectAddKey,
@@ -244,8 +244,8 @@ export class DamageModule extends EventProcessorModule {
         );
         for (const pair of effectAddHurtPairs) {
             const effectAddEvent = pair[0];
-            const hurtEvents = pair[1];
-            setEventResultedInMultiple(effectAddEvent, hurtEvents);
+            const hurtEvent = pair[1];
+            setEventResultedIn(effectAddEvent, hurtEvent);
         }
     }
 }
