@@ -1,11 +1,11 @@
 import { Direction, EntityComponentTypes, system, world } from "@minecraft/server";
 import { DebugBox, debugDrawer } from "@minecraft/debug-utilities";
 
-import { innerJoinOnKeyEqual } from "../../../lib/inner-join";
+import { joinOnKeyEqualOneToOne, joinOnKeyEqualOneToN } from "../../../lib/inner-join";
 import { log } from "../../../lib/debug/logging";
 import { getElseSetDefault } from "../../../lib/get-else-set-default";
 import { EventProcessorModule } from "../event-processor";
-import { setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
+import { setEventBeforeEventOf, setEventResultedInMultiple, setSnapshotProperty } from "./module-utils";
 import { ExplosionSimulator } from "../../simulators/explosion";
 import { add, mul } from "../../vector3-utils/math";
 import { UnitDirectionVector } from "../../vector3-utils/directions";
@@ -33,10 +33,18 @@ export class ExplosionModule extends EventProcessorModule {
     }
 
     declareRequirements(eventProcessor) {
+        eventProcessor.requestRequireEventSignal(this, world.beforeEvents.explosion);
+
+        eventProcessor.requestRequireEventSignal(this, world.afterEvents.explosion);
+
         world.beforeEvents.explosion.subscribe(this.#processExplosionBeforeEventCallback);
     }
 
     releaseRequirements(eventProcessor) {
+        eventProcessor.requestReleaseEventSignal(this, world.beforeEvents.explosion);
+
+        eventProcessor.requestReleaseEventSignal(this, world.afterEvents.explosion);
+
         world.beforeEvents.explosion.unsubscribe(this.#processExplosionBeforeEventCallback);
     }
 
@@ -114,5 +122,31 @@ export class ExplosionModule extends EventProcessorModule {
             "explosionLocationGuesses",
             explosionLocationGuesses
         );
+    }
+
+    static #explosionJoin_ExplosionEventKey(event) {
+        const sourceEntity = event.source;
+        if (sourceEntity === undefined) return null;
+    
+        const key = `E:${sourceEntity.id}`;
+        return key;
+    }
+
+    processTickEvents(events) {
+        // Associate before/after events to gain additional information
+        const explosionBeforeEvents = events.getEventsBySignal(world.beforeEvents.explosion);
+        const explosionAfterEvents = events.getEventsBySignal(world.afterEvents.explosion);
+        const explosionBeforeAfterPairs = joinOnKeyEqualOneToOne(
+            explosionBeforeEvents,
+            explosionAfterEvents,
+            ExplosionModule.#explosionJoin_ExplosionEventKey,
+            ExplosionModule.#explosionJoin_ExplosionEventKey
+        );
+        for (const pair of explosionBeforeAfterPairs) {
+            const beforeEvent = pair[0];
+            const afterEvent = pair[1];
+            setEventBeforeEventOf(beforeEvent, afterEvent);
+            log("Event", afterEvent, "is afterEvent of", beforeEvent);
+        }
     }
 }
